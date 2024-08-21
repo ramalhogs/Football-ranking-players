@@ -37,7 +37,7 @@ class FootballMatchRating:
         Mmax = 90
         for index, player in team_1.iterrows():
             Ea = self.expected_score(player['rating'], Rb)
-            Da = player['goals_for'] - player['goals_against']
+            Da = player['Goals For'] - player['Goals Against']
 
             Sa = 1 if Da > 0 else 0.5 if Da == 0 else 0
 

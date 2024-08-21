@@ -6,9 +6,9 @@ class FootballDataProcessor:
     def __init__(self, json_path):
         self.df = pd.read_json(json_path)
         self.df_transposed = self.df.transpose()
-        self.players_teams = self.df_transposed.iloc[1, 3]
-        self.team_changes = self.df_transposed.iloc[1, 5]
-        self.home_team = self.df_transposed.iloc[1, 0]
+        self.players_teams = self.df_transposed.iloc[8, 3]
+        self.team_changes = self.df_transposed.iloc[8, 5]
+        self.home_team = self.df_transposed.iloc[8, 0]
         self.new_df_players = pd.DataFrame(self.players_teams, columns=['player', 'team'])
         self.parsed_changes = []
         self.parsed_goals = []
