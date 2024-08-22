@@ -1,14 +1,15 @@
 import pandas as pd
 import numpy as np
 import re
+import os
 
 class FootballDataProcessor:
     def __init__(self, json_path):
         self.df = pd.read_json(json_path)
         self.df_transposed = self.df.transpose()
-        self.players_teams = self.df_transposed.iloc[8, 3]
-        self.team_changes = self.df_transposed.iloc[8, 5]
-        self.home_team = self.df_transposed.iloc[8, 0]
+        self.players_teams = self.df_transposed.iloc[1, 3]
+        self.team_changes = self.df_transposed.iloc[1, 5]
+        self.home_team = self.df_transposed.iloc[1, 0]
         self.new_df_players = pd.DataFrame(self.players_teams, columns=['player', 'team'])
         self.parsed_changes = []
         self.parsed_goals = []
@@ -113,10 +114,43 @@ class FootballDataProcessor:
     def set_status(self):
         self.new_df_players['status'] = np.where(self.new_df_players['team'] == self.home_team, 'Home', 'Away')
     
-    def process(self):
+
+    def filter_players_by_unique_ids(self, unique_player_ids):
+        self.new_df_players = self.new_df_players[self.new_df_players['player_id'].isin(unique_player_ids)]
+    
+    def collect_unique_ids(self, data_folder, file_names, years):
+        unique_ids = set()
+
+        def process_dataframe(df):
+            for column in df.columns:
+                for cell in df[column]:
+                    if isinstance(cell, dict):  
+                        for key in ['Home', 'Away']:
+                            team_info = cell.get(key, {})
+                            squad_ids = team_info.get('Squad', [])
+                            unique_ids.update(squad_ids)
+
+        for file_name in file_names:
+            for year in years:
+                file_path = os.path.join(data_folder, f'{file_name}_{year}_squads.json')
+                if os.path.exists(file_path):
+                    df = pd.read_json(file_path)
+                    df_ = df.iloc[:,1]
+                    df = pd.DataFrame(df_)
+                    process_dataframe(df)
+                else:
+                    print(f'Arquivo não encontrado: {file_path}')
+
+        return list(unique_ids)
+    
+    def process(self, data_folder, file_names, years):
         self.process_players()
         self.process_team_changes()
         self.set_status()
         self.process_goals()
         self.new_df_players = self.new_df_players.drop(columns='player')
+        
+        unique_player_ids = self.collect_unique_ids(data_folder, file_names, years)
+        self.filter_players_by_unique_ids(unique_player_ids)
+        
         return self.new_df_players
