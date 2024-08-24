@@ -150,10 +150,10 @@ class FootballDataProcessor:
         self.set_status()
         self.process_goals()
         self.new_df_players.rename(columns={'player': 'nome_jogador'}, inplace=True)
+        self.new_df_players['time_jogador'] = self.new_df_players['team']
         #self.new_df_players = self.new_df_players.drop(columns='player')
 
         unique_player_ids = self.collect_unique_ids(data_folder, file_names, years)
         self.filter_players_by_unique_ids(unique_player_ids)
-
-        
+        #print(self.new_df_players)
         return self.new_df_players
