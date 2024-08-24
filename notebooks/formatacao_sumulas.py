@@ -4,12 +4,12 @@ import re
 import os
 
 class FootballDataProcessor:
-    def __init__(self, json_path):
-        self.df = pd.read_json(json_path)
-        self.df_transposed = self.df.transpose()
-        self.players_teams = self.df_transposed.iloc[1, 3]
-        self.team_changes = self.df_transposed.iloc[1, 5]
-        self.home_team = self.df_transposed.iloc[1, 0]
+    def __init__(self, dataframe_campeonato, n):
+        self.df = dataframe_campeonato
+        self.n = n
+        self.players_teams = self.df.iloc[self.n, 3]
+        self.team_changes = self.df.iloc[self.n, 5]
+        self.home_team = self.df.iloc[self.n, 0]
         self.new_df_players = pd.DataFrame(self.players_teams, columns=['player', 'team'])
         self.parsed_changes = []
         self.parsed_goals = []
@@ -98,7 +98,8 @@ class FootballDataProcessor:
         self.new_df_players['Minutes Played'] = self.new_df_players['Minute Exited'] - self.new_df_players['Minute Entered']
     
     def process_goals(self):
-        self.parsed_goals = self.parse_goals(self.df_transposed.iloc[1, 4], self.home_team)
+        self.parsed_goals = self.parse_goals(self.df.iloc[8, 4], self.home_team)
+
         
         self.new_df_players['Goals For'] = 0
         self.new_df_players['Goals Against'] = 0
@@ -135,7 +136,7 @@ class FootballDataProcessor:
                 file_path = os.path.join(data_folder, f'{file_name}_{year}_squads.json')
                 if os.path.exists(file_path):
                     df = pd.read_json(file_path)
-                    df_ = df.iloc[:,1]
+                    df_ = df.iloc[:,self.n]
                     df = pd.DataFrame(df_)
                     process_dataframe(df)
                 else:
@@ -148,9 +149,11 @@ class FootballDataProcessor:
         self.process_team_changes()
         self.set_status()
         self.process_goals()
-        self.new_df_players = self.new_df_players.drop(columns='player')
-        
+        self.new_df_players.rename(columns={'player': 'nome_jogador'}, inplace=True)
+        #self.new_df_players = self.new_df_players.drop(columns='player')
+
         unique_player_ids = self.collect_unique_ids(data_folder, file_names, years)
         self.filter_players_by_unique_ids(unique_player_ids)
+
         
         return self.new_df_players
