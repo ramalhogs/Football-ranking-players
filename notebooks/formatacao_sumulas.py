@@ -63,7 +63,6 @@ class FootballDataProcessor:
 
                 time_casa = time_casa.replace(' / ', '/')
                 time_visitante = time_visitante.replace(' / ', '/')
-                #print(time_casa)
 
                 if time_casa in  match.group(6):
                     team = time_casa
@@ -90,6 +89,12 @@ class FootballDataProcessor:
         self.new_df_players['Minute Entered'] = 0
         self.new_df_players['Minute Exited'] = 90
     
+
+
+    def verifica_substring(self, substring, string):
+        partes = substring.split()
+        return all(parte in string for parte in partes)
+
     def process_team_changes(self):
         self.parsed_changes = self.parse_team_changes(self.team_changes)
         
@@ -99,23 +104,20 @@ class FootballDataProcessor:
             
             minute_entered = 45 + minute if '2T' in half else minute
             minute_exited = minute_entered
-            
-            mask_in = (
-                self.new_df_players['player_name'].apply(
-                    lambda x: re.match(r'^' + player_in_number + r'\D', x) is not None
-                ) & (self.new_df_players['team'] == team)
-            )
+
+            # Atualizar o jogador que entrou
+            mask_in = (self.new_df_players['player_name'].apply(lambda x: re.match(r'^' + player_in_number + r'\D', x) is not None) & 
+                    self.new_df_players['team'].apply(lambda x: self.verifica_substring(team, x)))
             self.new_df_players.loc[mask_in, 'Minute Entered'] = minute_entered
-            self.new_df_players.loc[mask_in, 'Minute Exited'] = 90
-            
-            mask_out = (
-                self.new_df_players['player_name'].apply(
-                    lambda x: re.match(r'^' + player_out_number + r'\D', x) is not None
-                ) & (self.new_df_players['team'] == team)
-            )
+            self.new_df_players.loc[mask_in, 'Minute Exited'] = 90  # O jogador que entra fica até o final do jogo
+
+            # Atualizar o jogador que saiu
+            mask_out = (self.new_df_players['player_name'].apply(lambda x: re.match(r'^' + player_out_number + r'\D', x) is not None) & 
+                        self.new_df_players['team'].apply(lambda x: self.verifica_substring(team, x)))
             self.new_df_players.loc[mask_out, 'Minute Exited'] = minute_exited
-        
+
         self.new_df_players['Minutes Played'] = self.new_df_players['Minute Exited'] - self.new_df_players['Minute Entered']
+        print(self.new_df_players)
     
     def process_goals(self):
         self.parsed_goals = self.parse_goals(self.df.iloc[self.n, 4], self.home_team)
