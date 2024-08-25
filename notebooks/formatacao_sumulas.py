@@ -38,18 +38,32 @@ class FootballDataProcessor:
                 parsed_data.append((time, half, team, player_out_number, player_in_number))
         return parsed_data
     
-    @staticmethod
-    def parse_goals(goals, home_team):
-        pattern = re.compile(r'(\d+):00 (\d+T)([\d\w]+)([A-Za-z ]+) ([\w\s/]+)')
+
+    def parse_goals(self, goals, home_team):
+        pattern = re.compile(r'(\d+):00 (\d+T)([^\s]+)\s+([^\d]+?)\s+(.*)')
         parsed_goals = []
+        print(goals)
         for goal in goals:
             match = pattern.search(goal)
+            print(match)
             if match:
                 minute = int(match.group(1))
                 half = match.group(2)
                 scorer_info = match.group(3)
                 player_name = match.group(4).strip()
-                team = match.group(5).strip()
+
+                time_casa = self.df.iloc[self.n , 0]
+                time_visitante = self.df.iloc[self.n, 1]
+
+                time_casa = time_casa.replace(' / ', '/')
+                time_visitante = time_visitante.replace(' / ', '/')
+                #print(time_casa)
+
+                if time_casa in  match.group(5):
+                    team = time_casa
+                else: 
+                    team = time_visitante
+
                 team = team.replace('/', ' / ')
                 
                 if '2T' in half and minute != 45:
@@ -98,7 +112,7 @@ class FootballDataProcessor:
         self.new_df_players['Minutes Played'] = self.new_df_players['Minute Exited'] - self.new_df_players['Minute Entered']
     
     def process_goals(self):
-        self.parsed_goals = self.parse_goals(self.df.iloc[8, 4], self.home_team)
+        self.parsed_goals = self.parse_goals(self.df.iloc[self.n, 4], self.home_team)
 
         
         self.new_df_players['Goals For'] = 0

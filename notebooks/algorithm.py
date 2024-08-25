@@ -11,6 +11,7 @@ class FootballMatchRating:
         self.team_1 = self.match_data[self.match_data['team'] == self.team_1_name]
         self.team_2 = self.match_data[self.match_data['team'] == self.team_2_name]
 
+
     def update_k_q_values(self, player):
         if (player['games_played'] < 30 or player['age'] < 18) and player['rating'] < 2300:
             player['k_value'] = 40
@@ -55,10 +56,15 @@ class FootballMatchRating:
         return team_1
 
     def update_ratings(self):
+
+        home_advantage = 100
+        self.team_1['rating'] += home_advantage
         self.team_1 = self.calculate_individual_changes(self.team_1, self.team_2)
         self.team_2 = self.calculate_individual_changes(self.team_2, self.team_1)
-        
+
+        self.team_1['rating'] -= home_advantage
         # Atualiza os dados no DataFrame original
+
         self.match_data.update(self.team_1)
         self.match_data.update(self.team_2)
 
