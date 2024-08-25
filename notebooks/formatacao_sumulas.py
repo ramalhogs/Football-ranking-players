@@ -40,17 +40,23 @@ class FootballDataProcessor:
     
 
     def parse_goals(self, goals, home_team):
-        pattern = re.compile(r'(\d+):00 (\d+T)([^\s]+)\s+([^\d]+?)\s+(.*)')
+        pattern = re.compile(r'(\+?\d+)(:00)? (\d+T)([^\s]+)\s+([^\d]+?)\s+(.*)')
         parsed_goals = []
-        print(goals)
+
         for goal in goals:
             match = pattern.search(goal)
-            print(match)
+
             if match:
-                minute = int(match.group(1))
-                half = match.group(2)
-                scorer_info = match.group(3)
-                player_name = match.group(4).strip()
+
+                if '+' in (match.group(1)):
+                    minute = 45
+                else:
+                    minute = int(match.group(1))
+
+                half = match.group(3)
+
+                scorer_info = match.group(4)
+                player_name = match.group(5).strip()
 
                 time_casa = self.df.iloc[self.n , 0]
                 time_visitante = self.df.iloc[self.n, 1]
@@ -59,7 +65,7 @@ class FootballDataProcessor:
                 time_visitante = time_visitante.replace(' / ', '/')
                 #print(time_casa)
 
-                if time_casa in  match.group(5):
+                if time_casa in  match.group(6):
                     team = time_casa
                 else: 
                     team = time_visitante
