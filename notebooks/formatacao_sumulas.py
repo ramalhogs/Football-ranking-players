@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 import os
+import unicodedata
 
 class FootballDataProcessor:
     def __init__(self, dataframe_campeonato, n):
@@ -38,6 +39,10 @@ class FootballDataProcessor:
                 parsed_data.append((time, half, team, player_out_number, player_in_number))
         return parsed_data
     
+    def remove_accents(self, text):
+        # Normalize the text to NFKD form and remove accents
+        return ''.join(c for c in unicodedata.normalize('NFKD', text) if not unicodedata.combining(c))
+
 
     def parse_goals(self, goals, home_team):
         pattern = re.compile(r'(\+?\d+)(:00)? (\d+T)([^\s]+)\s+([^\d]+?)\s+(.*)')
@@ -47,7 +52,6 @@ class FootballDataProcessor:
             match = pattern.search(goal)
 
             if match:
-
                 if '+' in (match.group(1)):
                     minute = 45
                 else:
@@ -64,14 +68,14 @@ class FootballDataProcessor:
                 time_casa = time_casa.replace(' / ', '/')
                 time_visitante = time_visitante.replace(' / ', '/')
 
-                time_casa = self.tratar_excecoes_nomes_times_2(time_casa)
+                time_casa_except = self.tratar_excecoes_nomes_times_2(time_casa)
+                time_casa_normalized = self.remove_accents(time_casa)
+                time_casa_except_normalized = self.remove_accents(time_casa_except)
 
-                if time_casa in  match.group(6):
+                if time_casa in  match.group(6) or time_casa_except in match.group(6) or time_casa_normalized in match.group(6) or time_casa_except_normalized in match.group(6):
                     team = time_casa
                 else: 
                     team = time_visitante
-
-                
 
                 team = self.tratar_excecoes_nomes_times(team)
                 team = team.replace('/', ' / ')
@@ -101,26 +105,18 @@ class FootballDataProcessor:
         return all(parte in string for parte in partes)
 
     def tratar_excecoes_nomes_times(self, team):
-        # Dicionário de exceções: chave é o nome parcial, valor é o nome completo
         excecoes = {
             "Atlético/PR": "Athletico Paranaense/PR",
             "Atlético/MG": "Atlético Mineiro/MG"
-            # Adicione outras exceções aqui conforme necessário
         }
-        
-        # Verificar se o time está nas exceções e substituí-lo
         return excecoes.get(team, team)
     
 
     def tratar_excecoes_nomes_times_2(self, team):
-        # Dicionário de exceções: chave é o nome parcial, valor é o nome completo
         excecoes = {
             "Athletico Paranaense/PR": "Atlético/PR",
             "Atlético Mineiro/MG": "Atlético/MG"
-            # Adicione outras exceções aqui conforme necessário
         }
-        
-        # Verificar se o time está nas exceções e substituí-lo
         return excecoes.get(team, team)
 
     
@@ -171,7 +167,6 @@ class FootballDataProcessor:
     
     def set_status(self):
         self.new_df_players['status'] = np.where(self.new_df_players['team'] == self.home_team, 'Home', 'Away')
-    
 
     def filter_players_by_unique_ids(self, unique_player_ids):
         self.new_df_players = self.new_df_players[self.new_df_players['player_id'].isin(unique_player_ids)]
@@ -208,9 +203,8 @@ class FootballDataProcessor:
         self.process_goals()
         self.new_df_players.rename(columns={'player': 'nome_jogador'}, inplace=True)
         self.new_df_players['time_jogador'] = self.new_df_players['team']
-        #self.new_df_players = self.new_df_players.drop(columns='player')
 
         unique_player_ids = self.collect_unique_ids(data_folder, file_names, years)
         self.filter_players_by_unique_ids(unique_player_ids)
-        #print(self.new_df_players)
+
         return self.new_df_players
