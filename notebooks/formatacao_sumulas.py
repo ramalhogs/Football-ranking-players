@@ -64,11 +64,16 @@ class FootballDataProcessor:
                 time_casa = time_casa.replace(' / ', '/')
                 time_visitante = time_visitante.replace(' / ', '/')
 
+                time_casa = self.tratar_excecoes_nomes_times_2(time_casa)
+
                 if time_casa in  match.group(6):
                     team = time_casa
                 else: 
                     team = time_visitante
 
+                
+
+                team = self.tratar_excecoes_nomes_times(team)
                 team = team.replace('/', ' / ')
                 
                 if '2T' in half and minute != 45:
@@ -95,15 +100,45 @@ class FootballDataProcessor:
         partes = substring.split()
         return all(parte in string for parte in partes)
 
+    def tratar_excecoes_nomes_times(self, team):
+        # Dicionário de exceções: chave é o nome parcial, valor é o nome completo
+        excecoes = {
+            "Atlético/PR": "Athletico Paranaense/PR",
+            "Atlético/MG": "Atlético Mineiro/MG"
+            # Adicione outras exceções aqui conforme necessário
+        }
+        
+        # Verificar se o time está nas exceções e substituí-lo
+        return excecoes.get(team, team)
+    
+
+    def tratar_excecoes_nomes_times_2(self, team):
+        # Dicionário de exceções: chave é o nome parcial, valor é o nome completo
+        excecoes = {
+            "Athletico Paranaense/PR": "Atlético/PR",
+            "Atlético Mineiro/MG": "Atlético/MG"
+            # Adicione outras exceções aqui conforme necessário
+        }
+        
+        # Verificar se o time está nas exceções e substituí-lo
+        return excecoes.get(team, team)
+
+    
     def process_team_changes(self):
         self.parsed_changes = self.parse_team_changes(self.team_changes)
-        
+
         for time, half, team, player_out_number, player_in_number in self.parsed_changes:
+
+            team = self.tratar_excecoes_nomes_times(team)
             minute = int(time.split(':')[0])
             team = team.replace('/', ' / ')
             
-            minute_entered = 45 + minute if '2T' in half else minute
-            minute_exited = minute_entered
+            if '2T' in half:
+                minute_entered = 45 + minute
+                minute_exited = 45 + minute
+            else:
+                minute_entered = minute
+                minute_exited = minute
 
             # Atualizar o jogador que entrou
             mask_in = (self.new_df_players['player_name'].apply(lambda x: re.match(r'^' + player_in_number + r'\D', x) is not None) & 
@@ -116,8 +151,8 @@ class FootballDataProcessor:
                         self.new_df_players['team'].apply(lambda x: self.verifica_substring(team, x)))
             self.new_df_players.loc[mask_out, 'Minute Exited'] = minute_exited
 
+
         self.new_df_players['Minutes Played'] = self.new_df_players['Minute Exited'] - self.new_df_players['Minute Entered']
-        print(self.new_df_players)
     
     def process_goals(self):
         self.parsed_goals = self.parse_goals(self.df.iloc[self.n, 4], self.home_team)
