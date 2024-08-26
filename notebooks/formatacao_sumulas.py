@@ -99,7 +99,6 @@ class FootballDataProcessor:
         self.new_df_players['Minute Exited'] = 90
     
 
-
     def verifica_substring(self, substring, string):
         partes = substring.split()
         return all(parte in string for parte in partes)
@@ -124,7 +123,7 @@ class FootballDataProcessor:
         self.parsed_changes = self.parse_team_changes(self.team_changes)
 
         for time, half, team, player_out_number, player_in_number in self.parsed_changes:
-
+            
             team = self.tratar_excecoes_nomes_times(team)
             minute = int(time.split(':')[0])
             team = team.replace('/', ' / ')
@@ -135,6 +134,8 @@ class FootballDataProcessor:
             else:
                 minute_entered = minute
                 minute_exited = minute
+
+            team = re.sub(r' \b[sS][aA][fF]\b', '', team).strip()
 
             # Atualizar o jogador que entrou
             mask_in = (self.new_df_players['player_name'].apply(lambda x: re.match(r'^' + player_in_number + r'\D', x) is not None) & 
@@ -184,15 +185,15 @@ class FootballDataProcessor:
                             unique_ids.update(squad_ids)
 
         for file_name in file_names:
-            for year in years:
-                file_path = os.path.join(data_folder, f'{file_name}_{year}_squads.json')
-                if os.path.exists(file_path):
-                    df = pd.read_json(file_path)
-                    df_ = df.iloc[:,self.n]
-                    df = pd.DataFrame(df_)
-                    process_dataframe(df)
-                else:
-                    print(f'Arquivo não encontrado: {file_path}')
+
+            file_path = os.path.join(data_folder, f'{file_name}_{years}_squads.json')
+            if os.path.exists(file_path):
+                df = pd.read_json(file_path)
+                df_ = df.iloc[:,self.n]
+                df = pd.DataFrame(df_)
+                process_dataframe(df)
+            else:
+                print(f'Arquivo não encontrado: {file_path}')
 
         return list(unique_ids)
     
