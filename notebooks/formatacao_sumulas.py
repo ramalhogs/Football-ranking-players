@@ -27,9 +27,14 @@ class FootballDataProcessor:
         clean_name = re.sub(r'\s+T.*|\s+TP.*|\s+RP.*|\s+T(g).*', '', player)
         return clean_name
     
-    @staticmethod
-    def parse_team_changes(changes):
-        pattern = re.compile(r'(\d{2}:\d{2}) (INT|\d+T)([\w\s]+/\w+) (\d+) - [^\d]+ (\d+) - [^\d]+')
+
+    def parse_team_changes(self, changes):
+        if not any('/' in change for change in changes) and '/' in self.new_df_players.iloc[0, 1]:
+            pattern = re.compile(r'(\d{2}:\d{2}) (\d+T|INT)([\w\s]+) (\d+) - [^\d]+ (\d+) - [^\d]+')
+        else:
+            print('2')
+            pattern = re.compile(r'(\d{2}:\d{2}) (INT|\d+T)([\w\s]+/\w+) (\d+) - [^\d]+ (\d+) - [^\d]+')
+
         parsed_data = []
         for change in changes:
             match = pattern.search(change)
@@ -37,6 +42,7 @@ class FootballDataProcessor:
                 time, half, team, player_out_number, player_in_number = match.groups()
                 team = team.strip()
                 parsed_data.append((time, half, team, player_out_number, player_in_number))
+        
         return parsed_data
     
     def remove_accents(self, text):
@@ -69,7 +75,7 @@ class FootballDataProcessor:
                 if '/' not in match.group(6) and '/' in time_casa:
                     time_casa = time_casa.split('/')[0].strip()
                     home_team = time_casa
-                    
+
                 time_casa = time_casa.replace(' / ', '/')
                 time_visitante = time_visitante.replace(' / ', '/')
 
@@ -94,6 +100,7 @@ class FootballDataProcessor:
                     team_status = 'Home' if team == home_team else 'Away'
                 
                 parsed_goals.append((minute, team_status))
+        
         return parsed_goals
     
     def process_players(self):
