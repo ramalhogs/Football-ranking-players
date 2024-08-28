@@ -65,6 +65,11 @@ class FootballDataProcessor:
                 time_casa = self.df.iloc[self.n , 0]
                 time_visitante = self.df.iloc[self.n, 1]
 
+                # Remove texto após "/" em time_casa se não existir "/" em match.group(6)
+                if '/' not in match.group(6) and '/' in time_casa:
+                    time_casa = time_casa.split('/')[0].strip()
+                    home_team = time_casa
+                    
                 time_casa = time_casa.replace(' / ', '/')
                 time_visitante = time_visitante.replace(' / ', '/')
 
