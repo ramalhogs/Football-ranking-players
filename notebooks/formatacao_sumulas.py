@@ -29,6 +29,11 @@ class FootballDataProcessor:
     
 
     def parse_team_changes(self, changes):
+
+
+        if (not any('1T' in change for change in changes)) and (not any('2T' in change for change in changes)) and (not any('INT' in change for change in changes)):
+
+            print(self.home_team, self.n)
         if not any('/' in change for change in changes) and '/' in self.new_df_players.iloc[0, 1]:
             pattern = re.compile(r'(\d{2}:\d{2}) (\d+T|INT)([\w\s]+) (\d+) - [^\d]+ (\d+) - [^\d]+')
         else:
