@@ -32,7 +32,6 @@ class FootballDataProcessor:
         if not any('/' in change for change in changes) and '/' in self.new_df_players.iloc[0, 1]:
             pattern = re.compile(r'(\d{2}:\d{2}) (\d+T|INT)([\w\s]+) (\d+) - [^\d]+ (\d+) - [^\d]+')
         else:
-            print('2')
             pattern = re.compile(r'(\d{2}:\d{2}) (INT|\d+T)([\w\s]+/\w+) (\d+) - [^\d]+ (\d+) - [^\d]+')
 
         parsed_data = []
@@ -115,10 +114,12 @@ class FootballDataProcessor:
         partes = substring.split()
         return all(parte in string for parte in partes)
 
+    #as exceções são basicamente para se adequar ao padrão do arquivo de dados. A primeira função é usada para substituições, e a segunda para os gols. É a forma de comunicar entre as tabelas
     def tratar_excecoes_nomes_times(self, team):
         excecoes = {
             "Atlético/PR": "Athletico Paranaense/PR",
-            "Atlético/MG": "Atlético Mineiro/MG"
+            "Atlético/MG": "Atlético Mineiro/MG",
+            "Guarani de Juazeiro/CE": "Guarani/CE", #exceção copa do brasil
         }
         return excecoes.get(team, team)
     
@@ -126,7 +127,8 @@ class FootballDataProcessor:
     def tratar_excecoes_nomes_times_2(self, team):
         excecoes = {
             "Athletico Paranaense/PR": "Atlético/PR",
-            "Atlético Mineiro/MG": "Atlético/MG"
+            "Atlético Mineiro/MG": "Atlético/MG",
+            "Guarani/CE": "Guarani de Juazeiro/CE", #exceção copa do brasil
         }
         return excecoes.get(team, team)
 
