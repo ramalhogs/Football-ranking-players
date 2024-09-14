@@ -124,6 +124,7 @@ class FootballDataProcessor:
             "Atlético/PR": "Athletico Paranaense/PR",
             "Atlético/MG": "Atlético Mineiro/MG",
             "Guarani de Juazeiro/CE": "Guarani/CE", #exceção copa do brasil
+            "BOTAFOGO/RJ": "Botafogo/RJ", #excecao brasileirao 2014 index 93
         }
         return excecoes.get(team, team)
     
@@ -146,7 +147,7 @@ class FootballDataProcessor:
             unique_team = self.tratar_excecoes_nomes_times_2(unique_team)
 
             if team in unique_team:
-                unique_team = self.tratar_excecoes_nomes_times(unique_team)
+
                 return unique_team
         return team  
 
@@ -156,6 +157,8 @@ class FootballDataProcessor:
         for time, half, team, player_out_number, player_in_number in self.parsed_changes:
             
             team = self.update_team_name(team)
+            team = self.tratar_excecoes_nomes_times(team)
+
             minute = int(time.split(':')[0])
             team = team.replace('/', ' / ')
             
