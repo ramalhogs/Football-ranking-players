@@ -30,10 +30,9 @@ class FootballDataProcessor:
 
     def parse_team_changes(self, changes):
 
-
         if (not any('1T' in change for change in changes)) and (not any('2T' in change for change in changes)) and (not any('INT' in change for change in changes)):
+            print(f'Substituições sem o tempo realizado: {self.home_team}, index: {self.n}')
 
-            print(self.home_team, self.n)
         if not any('/' in change for change in changes) and '/' in self.new_df_players.iloc[0, 1]:
             pattern = re.compile(r'(\d{2}:\d{2}) (\d+T|INT)([\w\s]+) (\d+) - [^\d]+ (\d+) - [^\d]+')
         else:
@@ -137,13 +136,26 @@ class FootballDataProcessor:
         }
         return excecoes.get(team, team)
 
-    
+    def update_team_name(self, team):
+        unique_teams = self.new_df_players['team'].unique().tolist()
+        for unique_team in unique_teams:
+            
+            unique_team = self.remove_accents(unique_team)
+
+            unique_team = unique_team.replace(' / ', '/')
+            unique_team = self.tratar_excecoes_nomes_times_2(unique_team)
+
+            if team in unique_team:
+                unique_team = self.tratar_excecoes_nomes_times(unique_team)
+                return unique_team
+        return team  
+
     def process_team_changes(self):
         self.parsed_changes = self.parse_team_changes(self.team_changes)
 
         for time, half, team, player_out_number, player_in_number in self.parsed_changes:
             
-            team = self.tratar_excecoes_nomes_times(team)
+            team = self.update_team_name(team)
             minute = int(time.split(':')[0])
             team = team.replace('/', ' / ')
             
@@ -158,15 +170,16 @@ class FootballDataProcessor:
 
             # Atualizar o jogador que entrou
             mask_in = (self.new_df_players['player_name'].apply(lambda x: re.match(r'^' + player_in_number + r'\D', x) is not None) & 
-                    self.new_df_players['team'].apply(lambda x: self.verifica_substring(team, x)))
+                    self.new_df_players['team'].apply(lambda x: self.verifica_substring(self.remove_accents(team), self.remove_accents(x))))
+
             self.new_df_players.loc[mask_in, 'Minute Entered'] = minute_entered
             self.new_df_players.loc[mask_in, 'Minute Exited'] = 90  # O jogador que entra fica até o final do jogo
 
             # Atualizar o jogador que saiu
             mask_out = (self.new_df_players['player_name'].apply(lambda x: re.match(r'^' + player_out_number + r'\D', x) is not None) & 
-                        self.new_df_players['team'].apply(lambda x: self.verifica_substring(team, x)))
+                        self.new_df_players['team'].apply(lambda x: self.verifica_substring(self.remove_accents(team), self.remove_accents(x))))
+            
             self.new_df_players.loc[mask_out, 'Minute Exited'] = minute_exited
-
 
         self.new_df_players['Minutes Played'] = self.new_df_players['Minute Exited'] - self.new_df_players['Minute Entered']
     
@@ -191,7 +204,7 @@ class FootballDataProcessor:
     def filter_players_by_unique_ids(self, unique_player_ids):
         self.new_df_players = self.new_df_players[self.new_df_players['player_id'].isin(unique_player_ids)]
     
-    def collect_unique_ids(self, data_folder, file_names, years):
+    def collect_unique_ids(self, data_folder, file_name, years):
         unique_ids = set()
 
         def process_dataframe(df):
@@ -203,16 +216,15 @@ class FootballDataProcessor:
                             squad_ids = team_info.get('Squad', [])
                             unique_ids.update(squad_ids)
 
-        for file_name in file_names:
 
-            file_path = os.path.join(data_folder, f'{file_name}_{years}_squads.json')
-            if os.path.exists(file_path):
-                df = pd.read_json(file_path)
-                df_ = df.iloc[:,self.n]
-                df = pd.DataFrame(df_)
-                process_dataframe(df)
-            else:
-                print(f'Arquivo não encontrado: {file_path}')
+        file_path = os.path.join(data_folder, f'{file_name}_{years}_squads.json')
+        if os.path.exists(file_path):
+            df = pd.read_json(file_path)
+            df_ = df.iloc[:,self.n]
+            df = pd.DataFrame(df_)
+            process_dataframe(df)
+        else:
+            print(f'Arquivo não encontrado: {file_path}')
 
         return list(unique_ids)
     
