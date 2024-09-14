@@ -27,16 +27,14 @@ class FootballDataProcessor:
         clean_name = re.sub(r'\s+T.*|\s+TP.*|\s+RP.*|\s+T(g).*', '', player)
         return clean_name
     
-
     def parse_team_changes(self, changes):
-
-        if (not any('1T' in change for change in changes)) and (not any('2T' in change for change in changes)) and (not any('INT' in change for change in changes)):
+        if (not any('1T' in change for change in changes)) and (not any('2T' in change for change in changes)) and (not any('INT' in change for change in changes)): #condição pra testar se está no padrão
             print(f'Substituições sem o tempo realizado: {self.home_team}, index: {self.n}')
 
-        if not any('/' in change for change in changes) and '/' in self.new_df_players.iloc[0, 1]:
+        if not any('/' in change for change in changes) and '/' in self.new_df_players.iloc[0, 1]: #campeonatos em 2013 com alguns times sem estado. condição para tratar esses casos
             pattern = re.compile(r'(\d{2}:\d{2}) (\d+T|INT)([\w\s]+) (\d+) - [^\d]+ (\d+) - [^\d]+')
         else:
-            pattern = re.compile(r'(\d{2}:\d{2}) (INT|\d+T)([\w\s]+/\w+) (\d+) - [^\d]+ (\d+) - [^\d]+')
+            pattern = re.compile(r'(\d{2}:\d{2}) (INT|\d+T)([\w\s]+/\w+) (\d+) - [^\d]+ (\d+) - [^\d]+') #padrão para os outros casos (2014-2024)
 
         parsed_data = []
         for change in changes:
@@ -49,11 +47,15 @@ class FootballDataProcessor:
         return parsed_data
     
     def remove_accents(self, text):
-        # Normalize the text to NFKD form and remove accents
         return ''.join(c for c in unicodedata.normalize('NFKD', text) if not unicodedata.combining(c))
 
 
     def parse_goals(self, goals, home_team):
+        '''
+        Os campeonatos de 2013 não seguem sempre um padrão, então match.group(6) (nome do time) precisa ser tratado de forma diferente, por isso tantas condições
+        O restante da função pega o tempo do gol e o time que fez o gol
+        '''
+
         pattern = re.compile(r'(\+?\d+)(:00)? (\d+T)([^\s]+)\s+([^\d]+?)\s+(.*)')
         parsed_goals = []
 
@@ -74,7 +76,7 @@ class FootballDataProcessor:
                 time_casa = self.df.iloc[self.n , 0]
                 time_visitante = self.df.iloc[self.n, 1]
 
-                # Remove texto após "/" em time_casa se não existir "/" em match.group(6)
+
                 if '/' not in match.group(6) and '/' in time_casa:
                     time_casa = time_casa.split('/')[0].strip()
                     home_team = time_casa
@@ -125,6 +127,7 @@ class FootballDataProcessor:
             "Atlético/MG": "Atlético Mineiro/MG",
             "Guarani de Juazeiro/CE": "Guarani/CE", #exceção copa do brasil
             "BOTAFOGO/RJ": "Botafogo/RJ", #excecao brasileirao 2014 index 93
+            "Csa/AL": "CSA/AL", #excecao brasileirao 2019
         }
         return excecoes.get(team, team)
     
@@ -188,7 +191,6 @@ class FootballDataProcessor:
     
     def process_goals(self):
         self.parsed_goals = self.parse_goals(self.df.iloc[self.n, 4], self.home_team)
-
         
         self.new_df_players['Goals For'] = 0
         self.new_df_players['Goals Against'] = 0
@@ -208,6 +210,11 @@ class FootballDataProcessor:
         self.new_df_players = self.new_df_players[self.new_df_players['player_id'].isin(unique_player_ids)]
     
     def collect_unique_ids(self, data_folder, file_name, years):
+        '''
+        Coletamos os ID's pelos squads porque a súmula mostra  todos os 
+        jogadores relacionados. Precisamos apenas dos que jogaram
+        '''
+
         unique_ids = set()
 
         def process_dataframe(df):
@@ -218,7 +225,6 @@ class FootballDataProcessor:
                             team_info = cell.get(key, {})
                             squad_ids = team_info.get('Squad', [])
                             unique_ids.update(squad_ids)
-
 
         file_path = os.path.join(data_folder, f'{file_name}_{years}_squads.json')
         if os.path.exists(file_path):
