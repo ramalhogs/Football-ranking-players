@@ -10,16 +10,20 @@ class FootballMatchRating:
         self.team_2 = self.match_data[self.match_data['team'] == self.team_2_name]
 
     def update_k_q_values(self, player):
-        if (player['games_played'] < 30 or player['age'] < 18) and player['rating'] < 2300:
+        if (player['games_played'] < 30 or player['age'] < 18) and player['rating'] < 1600:
             player['k_value'] = 40
-        elif player['rating'] < 2400:
+            player['q_value'] = 1
+        # elif player['rating'] < 1600:
+        #     player['k_value'] = 20
+        #     player['q_value'] = 0.75
+        elif player['games_played'] >= 30 and player['rating'] >= 1600:
             player['k_value'] = 20
-        elif player['games_played'] >= 30 and player['rating'] >= 2400:
-            player['k_value'] = 10
+            player['q_value'] = 0.5
         else:
-            player['k_value'] = 10  
+            player['k_value'] = 20
+            player['q_value'] = 0.5
 
-        player['q_value'] = 0.5
+        
         return player
 
     def calculate_team_rating(self, team):
